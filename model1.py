@@ -15,7 +15,6 @@ import joblib
 
 # Функция для извлечения лингвистических признаков
 def extract_text_features(text):
-    """Извлечение лингвистических признаков"""
     words = re.findall(r'\w+', text.lower())
     sentences = [s.strip() for s in re.split(r'[.!?]', text) if s.strip()]
 
@@ -46,15 +45,13 @@ def load_data(pairs_path, truth_path):
                 labels.append(truth_data["same"])
     return texts, labels
 
-
-# Загрузка данных
 print("Loading data...")
 texts, labels = load_data(
     "pan20-authorship-verification-test/pan20-authorship-verification-test.jsonl",
     "pan20-authorship-verification-test/pan20-authorship-verification-test-truth.jsonl"
 )
 
-# Подготовка TF-IDF
+#TF-IDF
 print("\nPreparing TF-IDF features...")
 all_texts = [text for pair in tqdm(texts, desc="Processing texts") for text in pair]
 tfidf = TfidfVectorizer(ngram_range=(1, 2), max_features=1000)
@@ -63,16 +60,16 @@ tfidf.fit(all_texts)
 
 def create_features(text1, text2, tfidf):
     """Создание расширенного набора признаков"""
-    # TF-IDF схожесть
+    #TF-IDF схожесть
     vec1 = tfidf.transform([text1])
     vec2 = tfidf.transform([text2])
     cosine_sim = cosine_similarity(vec1, vec2)[0][0]
 
-    # Лингвистические признаки
+    #Лингвистические признаки
     feats1 = extract_text_features(text1)
     feats2 = extract_text_features(text2)
 
-    # Комбинируем все признаки в плоский массив
+    #Комбинирование признаков
     return [
         cosine_sim,
         abs(len(text1) - len(text2)) / max(len(text1), len(text2), 1),
@@ -87,12 +84,12 @@ def create_features(text1, text2, tfidf):
     ]
 
 
-# Создание матрицы признаков
+#матрица признаков
 print("\nCreating feature matrix...")
 X = np.array([create_features(pair[0], pair[1], tfidf) for pair in tqdm(texts, desc="Processing pairs")])
 y = np.array(labels)
 
-# Нормализация признаков
+#нормализация
 scaler = StandardScaler()
 X = scaler.fit_transform(X)
 
@@ -107,7 +104,6 @@ X_train, X_test, y_train, y_test = train_test_split(
     X_res, y_res, test_size=0.2, random_state=42, stratify=y_res
 )
 
-# Обучение модели
 print("\nTraining model...")
 model = RandomForestClassifier(
     n_estimators=200,
@@ -149,4 +145,5 @@ components = {
 }
 
 joblib.dump(components, 'author_verification_components.pkl')
+
 print("\nAll components saved to author_verification_components.pkl")
